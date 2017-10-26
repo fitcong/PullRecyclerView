@@ -1,7 +1,7 @@
-##关于
+<H2>关于</H2>
 * 本控件参考了其他文章的内容,如有侵权请及时联系
 >jack120612@163.com (请写上相关内容)
-##说明文档:
+<H2>说明文档:</H2>
 1. 类说明
 * ArrowRefreshHeader - 下拉刷新的头部View,没有进行高度的封装,需要自己实现各种状态对应的控件状态
 * LoadingMoreFooter - 加载更多时展示的VIew,同样没有进行高度封装
@@ -50,7 +50,7 @@ recyclerview.setLoadingListener(new LoadingListener(){
 3. 附言
 * 因为这个我没有做高度的封转,建议直接clone下来之后在源码上进行修改,主要是样式上的问题.
 
-
+有问题欢迎提出或者直接邮件
 
 
  
