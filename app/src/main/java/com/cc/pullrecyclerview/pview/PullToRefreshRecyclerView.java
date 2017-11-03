@@ -1,5 +1,6 @@
 package com.cc.pullrecyclerview.pview;
 
+import android.animation.Animator;
 import android.content.Context;
 import android.support.annotation.IntDef;
 import android.support.annotation.Nullable;
@@ -13,6 +14,11 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.DecelerateInterpolator;
+import android.view.animation.Interpolator;
+
+import com.cc.pullrecyclerview.pview.animation.BaseAnimation;
+import com.cc.pullrecyclerview.pview.animation.TranslateAnimation;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -29,35 +35,94 @@ import static android.support.annotation.RestrictTo.Scope.LIBRARY_GROUP;
 
 public class PullToRefreshRecyclerView extends RecyclerView {
     private final String TAG = "PullToRefreshRecycler";
-
-    private View mFooterView;
+    /**
+     * 底部布局
+     */
+    private View mLoadMoreView;
+    /**
+     * 空布局
+     */
     private View mEmptyView;
     private Context mContext;
+    /**
+     * 下拉布局
+     */
     private ArrowRefreshHeader mArrowView;
+    /**
+     * 加载更多的标记
+     */
     private boolean isNoMore = false;
-
+    /**
+     * 进入动画的加载市场
+     */
+    private int mLoadAnimationDuration = 400;
+    /**
+     * 动画插值器
+     */
+    private Interpolator mInterpolator;
+    /**
+     * 进入动画
+     */
+    private BaseAnimation mAnimation;
+    /**
+     * 开启进入动画的标记
+     */
+    private boolean isCanStartLoadAnimation = false;
+    /**
+     * header列表
+     */
     private List<View> mHeaderViews = new ArrayList<>();
+    /**
+     * 与header一一对应的Type
+     */
     private List<Integer> mHeaderViewsType = new ArrayList<>();
+    /**
+     * footer列表
+     */
+    private List<View> mFooterViews = new ArrayList<>();
 
+    /**
+     * footer列表的type
+     */
+    private List<Integer> mFooterViewType = new ArrayList<>();
+    /**
+     * 是否正在加载,为了防止加载更多的时候多次触发
+     */
     private boolean isLoadingMore = false;
-
-    private int mCurrentMode = -1;
-
+    /**
+     * 加载模式
+     */
+    private int mCurrentMode = MODE_REFRESH_ALL;
+    /**
+     * 相关的type
+     */
     private final int VIEW_TYPE_ARROW = 996;
     private final int VIEW_TYPE_HEADER = 10001;
     private final int VIEW_TYPE_FOOTER = 994;
-
+    /**
+     * 相关滑动模式
+     */
     public static final int MODE_NONE = 997;
     public static final int MODE_REFRESH_TOP = 998;
     public static final int MODE_REFRESH_BOTTOM = 999;
     public static final int MODE_REFRESH_ALL = 1000;
-
+    /**
+     * 内部封转adapter
+     */
     private WarpAdapter mWrapAdapter;
+    /**
+     * 回调监听
+     */
     private LoadingListener mLoadingListener;
     private float mLastY = -1;
-
+    /**
+     * 数据观察触发
+     */
     private final RecyclerView.AdapterDataObserver mDataObserver = new DataObserver();
 
+    private boolean isOnlyFirstPalyAnima = true;
+
+    private int mLastPosition = -1;
 
     @RestrictTo(LIBRARY_GROUP)
     @IntDef(value = {MODE_NONE, MODE_REFRESH_BOTTOM, MODE_REFRESH_TOP, MODE_REFRESH_ALL})
@@ -89,9 +154,10 @@ public class PullToRefreshRecyclerView extends RecyclerView {
     }
 
     private void init() {
-        mFooterView = new LoadingMoreFooter(mContext);
+        mLoadMoreView = new LoadingMoreFooter(mContext);
         mArrowView = new ArrowRefreshHeader(mContext);
-        mFooterView.setVisibility(GONE);
+        mLoadMoreView.setVisibility(GONE);
+        mInterpolator = new DecelerateInterpolator();
     }
 
     /**
@@ -107,6 +173,15 @@ public class PullToRefreshRecyclerView extends RecyclerView {
         }
     }
 
+
+
+    public void addFooterView(View footerView){
+       mFooterViewType.add(VIEW_TYPE_FOOTER+mFooterViews.size());
+        mFooterViews.add(footerView);
+        if (mWrapAdapter != null) {
+            mWrapAdapter.notifyDataSetChanged();
+        }
+    }
     private View getHeaderViewByType(int viewType) {
         if (isHeaderViewType(viewType)) {
             return mHeaderViews.get(viewType - VIEW_TYPE_HEADER);
@@ -114,29 +189,58 @@ public class PullToRefreshRecyclerView extends RecyclerView {
         return null;
     }
 
-
     private boolean isHeaderViewType(int viewType) {
         return mHeaderViewsType.size() > 0 && mHeaderViewsType.contains(viewType);
     }
 
     /**
+     * 是否开启进入动画
+     * @param canStartLoadAnimation
+     */
+    public void setCanStartLoadAnimation(boolean canStartLoadAnimation) {
+        isCanStartLoadAnimation = canStartLoadAnimation;
+    }
+
+    /**
+     * 设置动画加载时长
+     * @param loadAnimationDuration
+     */
+    public void setLoadAnimationDuration(int loadAnimationDuration) {
+        this.mLoadAnimationDuration = loadAnimationDuration;
+    }
+
+    /**
+     * 设置加载动画
+     * @param animation
+     */
+    public void setLoadAnimation(BaseAnimation animation) {
+        this.mAnimation = animation;
+    }
+
+    /**
      * 拿到headerView的数量
+     *
      * @return
      */
-    public int getHeaderViewSize(){
+    public int getHeaderViewSize() {
         return mHeaderViews.size();
+    }
+
+
+    public int getFooterViewSize(){
+        return mFooterViews.size();
     }
 
 
     /**
      * 设置底部布局
      *
-     * @param footerView
+     * @param loadMoreView
      */
-    public void setFooterView(View footerView) {
-        mFooterView = footerView;
+    public void setLoadMoreView(View loadMoreView) {
+        mLoadMoreView = loadMoreView;
+        mLoadMoreView.setVisibility(VISIBLE);
     }
-
     /**
      * 进入的时候进行刷新
      */
@@ -147,6 +251,13 @@ public class PullToRefreshRecyclerView extends RecyclerView {
         }
     }
 
+    /**
+     * 设置下拉刷新布局
+     * @param view
+     */
+    public void setArrowView(BaseArrowView view){
+            mArrowView.setChildView(view);
+    }
     /**
      * 对除加载数据外的内容进行重置
      */
@@ -161,10 +272,10 @@ public class PullToRefreshRecyclerView extends RecyclerView {
      */
     public void loadMoreComplete() {
         isLoadingMore = false;
-        if (mFooterView instanceof LoadingMoreFooter) {
-            ((LoadingMoreFooter) mFooterView).setState(LoadingMoreFooter.STATE_COMPLETE);
+        if (mLoadMoreView instanceof LoadingMoreFooter) {
+            ((LoadingMoreFooter) mLoadMoreView).setState(LoadingMoreFooter.STATE_COMPLETE);
         } else {
-            mFooterView.setVisibility(View.GONE);
+            mLoadMoreView.setVisibility(View.GONE);
         }
     }
 
@@ -175,8 +286,6 @@ public class PullToRefreshRecyclerView extends RecyclerView {
         mArrowView.onRefreshComplete();
         setNoMore(false);
     }
-
-
     /**
      * 设置滑动模式
      *
@@ -185,17 +294,19 @@ public class PullToRefreshRecyclerView extends RecyclerView {
     public void setRefreshMode(@FreshMode int mode) {
         mCurrentMode = mode;
     }
-
+    /**
+     * 设置是否可以加载更多
+     * @param noMore
+     */
     public void setNoMore(boolean noMore) {
         isNoMore = noMore;
         isLoadingMore = false;
-        if (mFooterView instanceof LoadingMoreFooter) {
-            ((LoadingMoreFooter) mFooterView).setState(isNoMore ? LoadingMoreFooter.STATE_NOMORE : LoadingMoreFooter.STATE_COMPLETE);
+        if (mLoadMoreView instanceof LoadingMoreFooter) {
+            ((LoadingMoreFooter) mLoadMoreView).setState(isNoMore ? LoadingMoreFooter.STATE_NOMORE : LoadingMoreFooter.STATE_COMPLETE);
         } else {
-            mFooterView.setVisibility(View.GONE);
+            mLoadMoreView.setVisibility(View.GONE);
         }
     }
-
     /**
      * 将现有的Adapter进行包装
      *
@@ -270,8 +381,6 @@ public class PullToRefreshRecyclerView extends RecyclerView {
         }
     }
 
-    ;
-
 
     @Override
     public void onScrollStateChanged(int state) {
@@ -290,10 +399,10 @@ public class PullToRefreshRecyclerView extends RecyclerView {
             }
             if (layoutManager.getChildCount() > 0 && lastVisibleItemPosition >= layoutManager.getItemCount() - 1 && layoutManager.getItemCount() > layoutManager.getChildCount()) {
                 isLoadingMore = true;
-                if (mFooterView instanceof LoadingMoreFooter) {
-                    ((LoadingMoreFooter) mFooterView).setState(LoadingMoreFooter.STATE_LOADING);
+                if (mLoadMoreView instanceof LoadingMoreFooter) {
+                    ((LoadingMoreFooter) mLoadMoreView).setState(LoadingMoreFooter.STATE_LOADING);
                 } else {
-                    mFooterView.setVisibility(View.VISIBLE);
+                    mLoadMoreView.setVisibility(View.VISIBLE);
                 }
                 mLoadingListener.onLoadMore();
             }
@@ -314,8 +423,7 @@ public class PullToRefreshRecyclerView extends RecyclerView {
                 final float deltaY = ev.getRawY() - mLastY;
                 mLastY = ev.getRawY();
                 if (isOnTop() && isCanRefresh()) {
-                    Log.d(TAG, "onTouchEvent: " + deltaY);
-                    mArrowView.onMove((int) deltaY / 3);
+                    mArrowView.onMove((int) deltaY / 2);
                     if (mArrowView.getVisibleHeight() > 0 && mArrowView.getState() < ArrowRefreshHeader.STATE_REFRESHING) {
                         return false;
                     }
@@ -344,7 +452,11 @@ public class PullToRefreshRecyclerView extends RecyclerView {
         }
     }
 
-
+    /**
+     * 设置监听
+     *
+     * @param listener
+     */
     public void setLoadingListener(LoadingListener listener) {
         mLoadingListener = listener;
     }
@@ -378,7 +490,9 @@ public class PullToRefreshRecyclerView extends RecyclerView {
         return mCurrentMode == MODE_REFRESH_ALL || mCurrentMode == MODE_REFRESH_TOP;
     }
 
-
+    /**
+     * 内部包装的adapter,主要是处理多布局和矫正列表数量的问题
+     */
     private class WarpAdapter extends RecyclerView.Adapter<ViewHolder> {
 
         private Adapter adapter;
@@ -394,7 +508,7 @@ public class PullToRefreshRecyclerView extends RecyclerView {
             } else if (isHeaderViewType(viewType)) {
                 return new SimpleViewHolder(getHeaderViewByType(viewType));
             } else if (viewType == VIEW_TYPE_FOOTER) {
-                return new SimpleViewHolder(mFooterView);
+                return new SimpleViewHolder(mLoadMoreView);
             } else {
                 return adapter.onCreateViewHolder(parent, viewType);
             }
@@ -413,13 +527,27 @@ public class PullToRefreshRecyclerView extends RecyclerView {
                     adapter.onBindViewHolder(holder, adjPosition);
                 }
             }
-        }
+            if (isCanStartLoadAnimation) {
+                if (!isOnlyFirstPalyAnima || adjPosition > mLastPosition) {
+                    BaseAnimation animation = null;
+                    if (mAnimation == null) {
+                        animation = new TranslateAnimation();
+                    } else {
+                        animation = mAnimation;
+                    }
+                    Animator animators = animation.getAnimators(holder.itemView);
+                    animators.setInterpolator(mInterpolator);
+                    animators.setDuration(mLoadAnimationDuration).start();
+                    mLastPosition = adjPosition;
+                }
+            }
 
+        }
 
         @Override
         public int getItemCount() {
             int count = adapter.getItemCount() + 1;
-            if (mFooterView != null && isCanLoadMore()) {
+            if (mLoadMoreView != null && isCanLoadMore()) {
                 count += 1;
             }
             count += mHeaderViews.size();

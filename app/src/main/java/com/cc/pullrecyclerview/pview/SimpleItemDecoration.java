@@ -19,13 +19,13 @@ public class SimpleItemDecoration extends RecyclerView.ItemDecoration {
 
     private int mDividerHeight = 10;
 
-    private int mDividerColor = 0xff4b55;
+    private int mDividerColor = 0xffff4b55;
 
     private Paint mDividerPaint;
 
     public SimpleItemDecoration() {
         mDividerPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        mDividerPaint.setColor(Color.GREEN);
+        mDividerPaint.setColor(mDividerColor);
     }
 
 
