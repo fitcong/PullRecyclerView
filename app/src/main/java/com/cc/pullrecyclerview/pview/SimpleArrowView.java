@@ -37,12 +37,7 @@ public class SimpleArrowView extends BaseArrowView {
         mText.setGravity(Gravity.CENTER);
         mText.setLayoutParams(layoutParams);
         addView(mText);
-
-
-
-
     }
-
     @Override
     public void onRefreshing() {
         Log.d(TAG, "onRefreshing: ");
@@ -54,7 +49,6 @@ public class SimpleArrowView extends BaseArrowView {
         Log.d(TAG, "onPulling: "+progress+"canRefresh:"+canRefresh);
         mText.setText("onPulling: "+progress+"canRefresh:"+canRefresh);
     }
-
     @Override
     public void onRefreshed() {
         Log.d(TAG, "onRefreshed: ");

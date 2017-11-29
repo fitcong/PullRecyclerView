@@ -3,6 +3,7 @@ package com.cc.pullrecyclerview.pview;
 import android.animation.Animator;
 import android.content.Context;
 import android.support.annotation.IntDef;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.RestrictTo;
 import android.support.v7.widget.GridLayoutManager;
@@ -10,19 +11,19 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
 import android.util.AttributeSet;
-import android.util.Log;
+import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.Interpolator;
+import android.widget.LinearLayout;
 
 import com.cc.pullrecyclerview.pview.animation.BaseAnimation;
 import com.cc.pullrecyclerview.pview.animation.TranslateAnimation;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-import java.util.ArrayList;
 import java.util.List;
 
 import static android.support.annotation.RestrictTo.Scope.LIBRARY_GROUP;
@@ -38,11 +39,14 @@ public class PullToRefreshRecyclerView extends RecyclerView {
     /**
      * 底部布局
      */
-    private View mLoadMoreView;
+    private LoadingMoreFooter mLoadMoreView;
     /**
      * 空布局
      */
     private View mEmptyView;
+    /**
+     * 上下文
+     */
     private Context mContext;
     /**
      * 下拉布局
@@ -69,22 +73,13 @@ public class PullToRefreshRecyclerView extends RecyclerView {
      */
     private boolean isCanStartLoadAnimation = false;
     /**
-     * header列表
+     * 头布局父容器
      */
-    private List<View> mHeaderViews = new ArrayList<>();
+    private LinearLayout mHeaderContainer;
     /**
-     * 与header一一对应的Type
+     * 尾布局容器
      */
-    private List<Integer> mHeaderViewsType = new ArrayList<>();
-    /**
-     * footer列表
-     */
-    private List<View> mFooterViews = new ArrayList<>();
-
-    /**
-     * footer列表的type
-     */
-    private List<Integer> mFooterViewType = new ArrayList<>();
+    private LinearLayout mFooterContainer;
     /**
      * 是否正在加载,为了防止加载更多的时候多次触发
      */
@@ -96,9 +91,10 @@ public class PullToRefreshRecyclerView extends RecyclerView {
     /**
      * 相关的type
      */
-    private final int VIEW_TYPE_ARROW = 996;
-    private final int VIEW_TYPE_HEADER = 10001;
-    private final int VIEW_TYPE_FOOTER = 994;
+    private final int VIEW_TYPE_ARROW = 10000;
+    private final int VIEW_TYPE_HEADER = 20000;
+    private final int VIEW_TYPE_FOOTER = 30000;
+    private final int VIEW_TYPE_LOADING = 40000;
     /**
      * 相关滑动模式
      */
@@ -118,9 +114,9 @@ public class PullToRefreshRecyclerView extends RecyclerView {
     /**
      * 数据观察触发
      */
-    private final RecyclerView.AdapterDataObserver mDataObserver = new DataObserver();
+    private final AdapterDataObserver mDataObserver = new DataObserver();
 
-    private boolean isOnlyFirstPalyAnima = true;
+    private boolean isOnlyFirstPlayAnima = true;
 
     private int mLastPosition = -1;
 
@@ -129,7 +125,6 @@ public class PullToRefreshRecyclerView extends RecyclerView {
     @Retention(RetentionPolicy.SOURCE)
     public @interface FreshMode {
     }
-
 
     public interface LoadingListener {
 
@@ -160,41 +155,68 @@ public class PullToRefreshRecyclerView extends RecyclerView {
         mInterpolator = new DecelerateInterpolator();
     }
 
+    private void initFooterContainer(){
+        if (mFooterContainer != null)
+            return;
+        mFooterContainer = new LinearLayout(mContext);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        mFooterContainer.setLayoutParams(params);
+        mFooterContainer.setOrientation(LinearLayout.VERTICAL);
+        mFooterContainer.setHorizontalGravity(Gravity.CENTER_HORIZONTAL);
+    }
+
+    /**
+     * 初始化头布局
+     */
+    private void initHeaderContainer() {
+        if (mHeaderContainer != null)
+            return;
+        mHeaderContainer = new LinearLayout(mContext);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        mHeaderContainer.setLayoutParams(params);
+        mHeaderContainer.setOrientation(LinearLayout.VERTICAL);
+        mHeaderContainer.setHorizontalGravity(Gravity.CENTER_HORIZONTAL);
+    }
+
     /**
      * 添加头部布局
      *
      * @param headerView
      */
-    public void addHeaderView(View headerView) {
-        mHeaderViewsType.add(VIEW_TYPE_HEADER + mHeaderViews.size());
-        mHeaderViews.add(headerView);
+    public void addHeaderView(@NonNull View headerView) {
+        if (mHeaderContainer == null)
+            initHeaderContainer();
+        addView2Container(mHeaderContainer,headerView);
+    }
+    /**
+     * 添加为布局
+     *
+     * @param footerView
+     */
+    public void addFooterView(View footerView) {
+        if (mFooterContainer == null)
+            initFooterContainer();
+        addView2Container(mFooterContainer,footerView);
+    }
+    /**
+     * 添加控件到指定容器
+     * @param parent 指定容器
+     * @param child 子控件
+     */
+    private void addView2Container(@Nullable ViewGroup parent, @Nullable View child) {
+        if (child.getParent() != null) {
+             throw new NullPointerException("child has parent");
+        }
+        int childCount = parent.getChildCount();
+        parent.addView(child,childCount);
         if (mWrapAdapter != null) {
             mWrapAdapter.notifyDataSetChanged();
         }
-    }
-
-
-
-    public void addFooterView(View footerView){
-       mFooterViewType.add(VIEW_TYPE_FOOTER+mFooterViews.size());
-        mFooterViews.add(footerView);
-        if (mWrapAdapter != null) {
-            mWrapAdapter.notifyDataSetChanged();
-        }
-    }
-    private View getHeaderViewByType(int viewType) {
-        if (isHeaderViewType(viewType)) {
-            return mHeaderViews.get(viewType - VIEW_TYPE_HEADER);
-        }
-        return null;
-    }
-
-    private boolean isHeaderViewType(int viewType) {
-        return mHeaderViewsType.size() > 0 && mHeaderViewsType.contains(viewType);
     }
 
     /**
      * 是否开启进入动画
+     *
      * @param canStartLoadAnimation
      */
     public void setCanStartLoadAnimation(boolean canStartLoadAnimation) {
@@ -203,6 +225,7 @@ public class PullToRefreshRecyclerView extends RecyclerView {
 
     /**
      * 设置动画加载时长
+     *
      * @param loadAnimationDuration
      */
     public void setLoadAnimationDuration(int loadAnimationDuration) {
@@ -211,6 +234,7 @@ public class PullToRefreshRecyclerView extends RecyclerView {
 
     /**
      * 设置加载动画
+     *
      * @param animation
      */
     public void setLoadAnimation(BaseAnimation animation) {
@@ -223,24 +247,28 @@ public class PullToRefreshRecyclerView extends RecyclerView {
      * @return
      */
     public int getHeaderViewSize() {
-        return mHeaderViews.size();
+        return mHeaderContainer==null?0:mHeaderContainer.getChildCount();
     }
 
-
-    public int getFooterViewSize(){
-        return mFooterViews.size();
+    /**
+     * footerview的数量
+     *
+     * @return
+     */
+    public int getFooterViewSize() {
+        return mFooterContainer==null?0:mFooterContainer.getChildCount();
     }
-
 
     /**
      * 设置底部布局
      *
      * @param loadMoreView
      */
-    public void setLoadMoreView(View loadMoreView) {
+    public void setLoadMoreView(LoadingMoreFooter loadMoreView) {
         mLoadMoreView = loadMoreView;
         mLoadMoreView.setVisibility(VISIBLE);
     }
+
     /**
      * 进入的时候进行刷新
      */
@@ -253,11 +281,13 @@ public class PullToRefreshRecyclerView extends RecyclerView {
 
     /**
      * 设置下拉刷新布局
+     *
      * @param view
      */
-    public void setArrowView(BaseArrowView view){
-            mArrowView.setChildView(view);
+    public void setArrowView(BaseArrowView view) {
+        mArrowView.setChildView(view);
     }
+
     /**
      * 对除加载数据外的内容进行重置
      */
@@ -272,11 +302,7 @@ public class PullToRefreshRecyclerView extends RecyclerView {
      */
     public void loadMoreComplete() {
         isLoadingMore = false;
-        if (mLoadMoreView instanceof LoadingMoreFooter) {
-            ((LoadingMoreFooter) mLoadMoreView).setState(LoadingMoreFooter.STATE_COMPLETE);
-        } else {
-            mLoadMoreView.setVisibility(View.GONE);
-        }
+        mLoadMoreView.setState(LoadingMoreFooter.STATE_COMPLETE);
     }
 
     /**
@@ -286,6 +312,7 @@ public class PullToRefreshRecyclerView extends RecyclerView {
         mArrowView.onRefreshComplete();
         setNoMore(false);
     }
+
     /**
      * 设置滑动模式
      *
@@ -294,19 +321,27 @@ public class PullToRefreshRecyclerView extends RecyclerView {
     public void setRefreshMode(@FreshMode int mode) {
         mCurrentMode = mode;
     }
+
     /**
      * 设置是否可以加载更多
+     *
      * @param noMore
      */
     public void setNoMore(boolean noMore) {
         isNoMore = noMore;
         isLoadingMore = false;
-        if (mLoadMoreView instanceof LoadingMoreFooter) {
-            ((LoadingMoreFooter) mLoadMoreView).setState(isNoMore ? LoadingMoreFooter.STATE_NOMORE : LoadingMoreFooter.STATE_COMPLETE);
-        } else {
-            mLoadMoreView.setVisibility(View.GONE);
-        }
+        mLoadMoreView.setState(isNoMore ? LoadingMoreFooter.STATE_NOMORE : LoadingMoreFooter.STATE_COMPLETE);
     }
+
+    /**
+     * 设置空布局
+     *
+     * @param emptyView
+     */
+    public void setEmptyView(@NonNull View emptyView) {
+        this.mEmptyView = emptyView;
+    }
+
     /**
      * 将现有的Adapter进行包装
      *
@@ -318,6 +353,11 @@ public class PullToRefreshRecyclerView extends RecyclerView {
         super.setAdapter(mWrapAdapter);
         adapter.registerAdapterDataObserver(mDataObserver);
         mDataObserver.onChanged();
+    }
+
+    @Override
+    public void addItemDecoration(ItemDecoration decor) {
+        super.addItemDecoration(decor);
     }
 
     /**
@@ -341,7 +381,7 @@ public class PullToRefreshRecyclerView extends RecyclerView {
                 mWrapAdapter.notifyDataSetChanged();
             }
             if (mWrapAdapter != null && mEmptyView != null) {
-                int emptyCount = 1 + mHeaderViews.size();
+                int emptyCount = 1+1;
                 if (isCanLoadMore()) {
                     emptyCount++;
                 }
@@ -381,7 +421,6 @@ public class PullToRefreshRecyclerView extends RecyclerView {
         }
     }
 
-
     @Override
     public void onScrollStateChanged(int state) {
         super.onScrollStateChanged(state);
@@ -399,11 +438,7 @@ public class PullToRefreshRecyclerView extends RecyclerView {
             }
             if (layoutManager.getChildCount() > 0 && lastVisibleItemPosition >= layoutManager.getItemCount() - 1 && layoutManager.getItemCount() > layoutManager.getChildCount()) {
                 isLoadingMore = true;
-                if (mLoadMoreView instanceof LoadingMoreFooter) {
-                    ((LoadingMoreFooter) mLoadMoreView).setState(LoadingMoreFooter.STATE_LOADING);
-                } else {
-                    mLoadMoreView.setVisibility(View.VISIBLE);
-                }
+                mLoadMoreView.setState(LoadingMoreFooter.STATE_LOADING);
                 mLoadingListener.onLoadMore();
             }
         }
@@ -472,6 +507,7 @@ public class PullToRefreshRecyclerView extends RecyclerView {
         return max;
     }
 
+
     /**
      * 是否可以加载更多
      *
@@ -505,21 +541,24 @@ public class PullToRefreshRecyclerView extends RecyclerView {
         public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
             if (viewType == VIEW_TYPE_ARROW) {
                 return new SimpleViewHolder(mArrowView);
-            } else if (isHeaderViewType(viewType)) {
-                return new SimpleViewHolder(getHeaderViewByType(viewType));
-            } else if (viewType == VIEW_TYPE_FOOTER) {
+            } else if (viewType == VIEW_TYPE_HEADER) {
+                return new SimpleViewHolder(mHeaderContainer);
+            } else if (viewType==VIEW_TYPE_FOOTER) {
+                return new SimpleViewHolder(mFooterContainer);
+            } else if (viewType == VIEW_TYPE_LOADING) {
                 return new SimpleViewHolder(mLoadMoreView);
             } else {
                 return adapter.onCreateViewHolder(parent, viewType);
             }
         }
 
+
         @Override
         public void onBindViewHolder(ViewHolder holder, int position) {
             if (isArrow(position) || isHeader(position)) {
                 return;
             }
-            int adjPosition = position - mHeaderViews.size() - 1;
+            int adjPosition = position - 1 - 1;
             int adapterCount;
             if (adapter != null) {
                 adapterCount = adapter.getItemCount();
@@ -528,8 +567,8 @@ public class PullToRefreshRecyclerView extends RecyclerView {
                 }
             }
             if (isCanStartLoadAnimation) {
-                if (!isOnlyFirstPalyAnima || adjPosition > mLastPosition) {
-                    BaseAnimation animation = null;
+                if (!isOnlyFirstPlayAnima || adjPosition > mLastPosition) {
+                    BaseAnimation animation;
                     if (mAnimation == null) {
                         animation = new TranslateAnimation();
                     } else {
@@ -550,22 +589,18 @@ public class PullToRefreshRecyclerView extends RecyclerView {
             if (mLoadMoreView != null && isCanLoadMore()) {
                 count += 1;
             }
-            count += mHeaderViews.size();
+            count += (isHadHeader() + isHadFooter());
             return count;
         }
 
         @Override
         public int getItemViewType(int position) {
-            int adjPosition = position - mHeaderViews.size() - 1;
-            if (isHeader(position)) {
-                position = position - 1;
-                return getHeaderType(position);
-            }
-            if (isFooter(position)) {
-                return VIEW_TYPE_FOOTER;
-            }
+            int adjPosition = position - 1- 1;
             if (isArrow(position)) {
                 return VIEW_TYPE_ARROW;
+            }
+            if (isHeader(position)) {
+                return VIEW_TYPE_HEADER;
             }
             if (adapter != null) {
                 int adapterCount = adapter.getItemCount();
@@ -573,13 +608,15 @@ public class PullToRefreshRecyclerView extends RecyclerView {
                     return adapter.getItemViewType(adjPosition);
                 }
             }
+            if (isFooter(position)) {
+                return VIEW_TYPE_FOOTER;
+            }
+            if (isLoadingMoreView(position)) {
+                return VIEW_TYPE_LOADING;
+            }
             return -999;
         }
 
-
-        private int getHeaderType(int position) {
-            return mHeaderViewsType.get(position);
-        }
 
         @Override
         public void onDetachedFromRecyclerView(RecyclerView recyclerView) {
@@ -592,7 +629,7 @@ public class PullToRefreshRecyclerView extends RecyclerView {
             ViewGroup.LayoutParams lp = holder.itemView.getLayoutParams();
             if (lp != null
                     && lp instanceof StaggeredGridLayoutManager.LayoutParams
-                    && (isHeader(holder.getLayoutPosition()) || isArrow(holder.getLayoutPosition()) || isFooter(holder.getLayoutPosition()))) {
+                    && (isLoadingMoreView(holder.getLayoutPosition()) || isHeader(holder.getLayoutPosition()) || isArrow(holder.getLayoutPosition()) || isFooter(holder.getLayoutPosition()))) {
                 StaggeredGridLayoutManager.LayoutParams p = (StaggeredGridLayoutManager.LayoutParams) lp;
                 p.setFullSpan(true);
             }
@@ -623,8 +660,6 @@ public class PullToRefreshRecyclerView extends RecyclerView {
         public void registerAdapterDataObserver(AdapterDataObserver observer) {
             adapter.registerAdapterDataObserver(observer);
         }
-
-
         /**
          * 判断是否为底部View
          *
@@ -632,7 +667,24 @@ public class PullToRefreshRecyclerView extends RecyclerView {
          * @return
          */
         private boolean isFooter(int position) {
-            return position == adapter.getItemCount() + 1 + mHeaderViews.size();
+            return position>=1+isHadHeader()+adapter.getItemCount()&&position<getItemCount()-1;
+        }
+
+
+        public int isHadHeader(){
+            return mHeaderContainer==null?0:1;
+        }
+        public int isHadFooter(){
+            return mFooterContainer==null?0:1;
+        }
+        /**
+         * 判断是否是LoadMoreView
+         *
+         * @param position
+         * @return
+         */
+        private boolean isLoadingMoreView(int position) {
+            return position == adapter.getItemCount() + isHadFooter()+isHadFooter() + 1;
         }
 
         /**
@@ -642,7 +694,7 @@ public class PullToRefreshRecyclerView extends RecyclerView {
          * @return
          */
         private boolean isHeader(int position) {
-            return position >= 1 && position < mHeaderViews.size() + 1;
+            return position == 1;
         }
 
         /**
@@ -678,11 +730,16 @@ public class PullToRefreshRecyclerView extends RecyclerView {
                 gridManager.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
                     @Override
                     public int getSpanSize(int position) {
-                        return (isHeader(position) || isFooter(position) || isArrow(position))
+                        return (isLoadingMoreView(position) || isHeader(position) || isFooter(position) || isArrow(position))
                                 ? gridManager.getSpanCount() : 1;
                     }
                 });
             }
+        }
+
+        @Override
+        public void onBindViewHolder(ViewHolder holder, int position, List<Object> payloads) {
+            super.onBindViewHolder(holder, position, payloads);
         }
     }
 

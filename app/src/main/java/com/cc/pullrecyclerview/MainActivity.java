@@ -8,6 +8,7 @@ import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.TextView;
 
 import com.cc.pullrecyclerview.pview.PullToRefreshRecyclerView;
@@ -35,28 +36,43 @@ public class MainActivity extends AppCompatActivity {
         refreshRecyclerView.setRefreshMode(PullToRefreshRecyclerView.MODE_REFRESH_ALL);
         MyAdapter adapter = new MyAdapter();
         refreshRecyclerView.setAdapter(adapter);
-        View inflate1 = LayoutInflater.from(this).inflate(R.layout.item, refreshRecyclerView,false);
-        TextView inflate = inflate1.findViewById(R.id.text);
-        inflate.setText("头布局-1");
-
-        View inflate2 = LayoutInflater.from(this).inflate(R.layout.item, refreshRecyclerView,false);
-        TextView inflate22 = inflate2.findViewById(R.id.text);
-        inflate22.setText("头布局-2");
 
 
-        View inflate3 = LayoutInflater.from(this).inflate(R.layout.item, refreshRecyclerView,false);
-        TextView inflate33 = inflate3.findViewById(R.id.text);
-        inflate33.setText("头布局-3");
 
-        refreshRecyclerView.addHeaderView(inflate1);
-        refreshRecyclerView.addHeaderView(inflate2);
-        refreshRecyclerView.addHeaderView(inflate3);
+
+        View itemView = LayoutInflater.from(this).inflate(R.layout.item_view, null,false);
+        TextView textView = itemView.findViewById(R.id.text);
+        Button button = itemView.findViewById(R.id.btn);
+        textView.setText("头布局");
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                addHeader();
+            }
+        });
+
+
+        refreshRecyclerView.addHeaderView(itemView);
+
+
+
+        View inflate4 = LayoutInflater.from(this).inflate(R.layout.item, null,false);
+        TextView inflate44 = inflate4.findViewById(R.id.text);
+        inflate44.setText("footView-1");
+
+        refreshRecyclerView.addFooterView(inflate4);
+
+        View inflate5 = LayoutInflater.from(this).inflate(R.layout.item, null,false);
+        TextView inflate55 = inflate5.findViewById(R.id.text);
+        inflate55.setText("footView-2");
+
+        refreshRecyclerView.addFooterView(inflate5);
 
 
         refreshRecyclerView.setArrowView(new SimpleArrowView(this));
         refreshRecyclerView.addItemDecoration(new SimpleItemDecoration());
         refreshRecyclerView.setCanStartLoadAnimation(true);
-
+        refreshRecyclerView.setEmptyView(LayoutInflater.from(this).inflate(R.layout.item_empty,refreshRecyclerView,false));
         refreshRecyclerView.setLoadingListener(new PullToRefreshRecyclerView.LoadingListener() {
             @Override
             public void onRefresh() {
@@ -66,13 +82,30 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }, 2000);
             }
-
             @Override
             public void onLoadMore() {
-
+                new Handler().postDelayed(new Runnable() {
+                    public void run() {
+                        refreshRecyclerView.loadMoreComplete();
+                        refreshRecyclerView.setNoMore(true);
+                    }
+                }, 2000);
             }
         });
+    }
 
+    private void addHeader() {
+        View itemView = LayoutInflater.from(MainActivity.this).inflate(R.layout.item_view, null,false);
+        TextView textView = itemView.findViewById(R.id.text);
+        Button button = itemView.findViewById(R.id.btn);
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                addHeader();
+            }
+        });
+        textView.setText("头布局");
+        refreshRecyclerView.addHeaderView(itemView);
     }
 
     class MyAdapter extends RecyclerView.Adapter<ViewHolder>{
@@ -103,10 +136,6 @@ public class MainActivity extends AppCompatActivity {
             super(itemView);
             textView = itemView.findViewById(R.id.text);
         }
-
-
-
-
     }
 
 }

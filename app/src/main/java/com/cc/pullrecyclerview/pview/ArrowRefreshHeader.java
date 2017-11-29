@@ -16,13 +16,11 @@ public class ArrowRefreshHeader extends LinearLayout implements PullToRefreshHea
     public int mMeasuredHeight;
     private BaseArrowView mView;
     private String TAG = "ArrowRefreshHeader";
-    private int distance = 0;
 
     public ArrowRefreshHeader(Context context) {
         super(context);
         initView();
     }
-
     /**
      * @param context
      * @param attrs
@@ -49,7 +47,6 @@ public class ArrowRefreshHeader extends LinearLayout implements PullToRefreshHea
         measure(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         mMeasuredHeight = getMeasuredHeight();
     }
-
 
     public void setState(int state) {
         if (mView == null)
