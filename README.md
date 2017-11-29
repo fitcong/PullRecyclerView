@@ -1,17 +1,18 @@
-##关于
+## 关于
 
 * 本控件参考了其他文章的内容,如有侵权请及时联系
 >jack120612@163.com (请写上相关内容)
-##相关说明
 
-1. 类说明
+## 相关说明
+
+### 1. 类说明
 * ArrowRefreshHeader - 下拉刷新的头部View,没有进行高度的封装,需要自己实现各种状态对应的控件状态
 * LoadingMoreFooter - 加载更多时展示的VIew,同样没有进行高度封装
 * PullToRefreshHeaderHelper - 下拉刷新的帮助类
 * PullToRefreshRecyclerView - 二次封装的RecyclerView,主要核心就是创建不同的ItemType来达成不同的item
 * SimpleItemDecoration - 简易的分割线
 
-2. 使用方法
+### 2. 使用方法
 * 关于基础使用方法我就不做赘述了,因为和正常的RecyclerView一样
 * 添加头部,可以直接调用多次,添加多个
  ```java
@@ -49,7 +50,7 @@ recyclerview.setLoadingListener(new LoadingListener(){
     // MODE_REFRESH_ALL 全部都进行(默认选项)
     recyclerview.setMode(PullToRefreshView.FreshMode.MODE_REFRESH_ALL);
 ```
-3. 附言
+## 附言
 * 因为这个我没有做高度的封转,建议直接clone下来之后在源码上进行修改,主要是样式上的问题.
 
 有问题欢迎提出或者直接邮件
