@@ -5,6 +5,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,7 +13,6 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import com.cc.pullrecyclerview.pview.PullToRefreshRecyclerView;
-import com.cc.pullrecyclerview.pview.SimpleArrowView;
 import com.cc.pullrecyclerview.pview.SimpleItemDecoration;
 
 import java.util.ArrayList;
@@ -37,7 +37,8 @@ public class MainActivity extends AppCompatActivity {
         MyAdapter adapter = new MyAdapter();
         refreshRecyclerView.setAdapter(adapter);
 
-
+        View empty = LayoutInflater.from(this).inflate(R.layout.item_empty, refreshRecyclerView, false);
+        refreshRecyclerView.setEmptyView(empty);
 
 
         View itemView = LayoutInflater.from(this).inflate(R.layout.item_view, null,false);
@@ -53,25 +54,13 @@ public class MainActivity extends AppCompatActivity {
 
 
         refreshRecyclerView.addHeaderView(itemView);
-
-
-
-        View inflate4 = LayoutInflater.from(this).inflate(R.layout.item, null,false);
-        TextView inflate44 = inflate4.findViewById(R.id.text);
-        inflate44.setText("footView-1");
-
-        refreshRecyclerView.addFooterView(inflate4);
-
-        View inflate5 = LayoutInflater.from(this).inflate(R.layout.item, null,false);
-        TextView inflate55 = inflate5.findViewById(R.id.text);
-        inflate55.setText("footView-2");
-
-        refreshRecyclerView.addFooterView(inflate5);
+        LoadingMoreFooter loadingMoreFooter = new LoadingMoreFooter(refreshRecyclerView.getContext());
+        refreshRecyclerView.setLoadMoreView(loadingMoreFooter);
+        refreshRecyclerView.setCanStartLoadAnimation(false);
 
 
         refreshRecyclerView.setArrowView(new SimpleArrowView(this));
         refreshRecyclerView.addItemDecoration(new SimpleItemDecoration());
-        refreshRecyclerView.setCanStartLoadAnimation(true);
         refreshRecyclerView.setEmptyView(LayoutInflater.from(this).inflate(R.layout.item_empty,refreshRecyclerView,false));
         refreshRecyclerView.setLoadingListener(new PullToRefreshRecyclerView.LoadingListener() {
             @Override
@@ -135,6 +124,12 @@ public class MainActivity extends AppCompatActivity {
         public ViewHolder(View itemView) {
             super(itemView);
             textView = itemView.findViewById(R.id.text);
+            itemView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Log.d("11111111", "onClick: ");
+                }
+            });
         }
     }
 

@@ -18,7 +18,7 @@ public class SimpleItemDecoration extends RecyclerView.ItemDecoration {
 
     private int mDividerHeight = 10;
 
-    private int mDividerColor = 0xffff4b55;
+    private int mDividerColor = 0xffffffff;
 
     private Paint mDividerPaint;
 
@@ -53,7 +53,7 @@ public class SimpleItemDecoration extends RecyclerView.ItemDecoration {
             for (int i = 0; i < childCount; i++) {
                 View childAt = parent.getChildAt(i);
                 int childAdapterPosition = parent.getChildAdapterPosition(childAt);
-                if(childAdapterPosition>=1+(rootView.getHeaderViewSize()==0?0:1)&&childAdapterPosition<=1+(rootView.getHeaderViewSize()==0?0:1)+rootView.getAdapter().getItemCount()){
+                if(childAdapterPosition>1+(rootView.getHeaderViewSize()==0?0:1)&&childAdapterPosition<=1+(rootView.getHeaderViewSize()==0?0:1)+rootView.getAdapter().getItemCount()){
                     int top = childAt.getTop() - mDividerHeight;
                     int left = parent.getPaddingLeft();
                     int bottom = childAt.getTop();
@@ -75,7 +75,7 @@ public class SimpleItemDecoration extends RecyclerView.ItemDecoration {
         if (parent instanceof PullToRefreshRecyclerView) {
             PullToRefreshRecyclerView rootView = (PullToRefreshRecyclerView) parent;
             int childAdapterPosition = parent.getChildAdapterPosition(view);
-            if(childAdapterPosition>=1+(rootView.getHeaderViewSize()==0?0:1)&&childAdapterPosition<=1+(rootView.getHeaderViewSize()==0?0:1)+rootView.getAdapter().getItemCount()){
+            if(childAdapterPosition>1+(rootView.getHeaderViewSize()==0?0:1)&&childAdapterPosition<=1+(rootView.getHeaderViewSize()==0?0:1)+rootView.getAdapter().getItemCount()){
                 outRect.top = mDividerHeight;
             }
 

@@ -1,4 +1,4 @@
-package com.cc.pullrecyclerview.pview;
+package com.cc.pullrecyclerview;
 
 import android.content.Context;
 import android.support.v7.widget.RecyclerView;
@@ -9,12 +9,10 @@ import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import com.cc.pullrecyclerview.pview.listener.ILoadMoreState;
 
-public class LoadingMoreFooter extends LinearLayout {
 
-    public final static int STATE_LOADING = 0;
-    public final static int STATE_COMPLETE = 1;
-    public final static int STATE_NOMORE = 2;
+public class LoadingMoreFooter extends LinearLayout implements ILoadMoreState {
     private TextView mText;
     private String loadingHint = "正在加载...";
     private String noMoreHint = "没有更多了...";
@@ -59,21 +57,23 @@ public class LoadingMoreFooter extends LinearLayout {
         addView(mText);
     }
 
+    @Override
+    public void onLoading() {
+        mText.setText(loadingHint);
+    }
 
-    public void setState(int state) {
-        switch (state) {
-            case STATE_LOADING:
-                mText.setText(loadingHint);
-                setVisibility(View.VISIBLE);
-                break;
-            case STATE_COMPLETE:
-                mText.setText(loadingDoneHint);
-                setVisibility(View.GONE);
-                break;
-            case STATE_NOMORE:
-                mText.setText(noMoreHint);
-                setVisibility(View.VISIBLE);
-                break;
-        }
+    @Override
+    public void onComplete() {
+        mText.setText(loadingDoneHint);
+    }
+
+    @Override
+    public void onNoMore() {
+        mText.setText(noMoreHint);
+    }
+
+    @Override
+    public View getLoadMoreView() {
+        return this;
     }
 }

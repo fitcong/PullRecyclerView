@@ -1,6 +1,7 @@
-package com.cc.pullrecyclerview.pview;
+package com.cc.pullrecyclerview;
 
 import android.content.Context;
+import android.graphics.Color;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -8,6 +9,8 @@ import android.view.Gravity;
 import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.cc.pullrecyclerview.pview.BaseArrowView;
 
 /**
  * description: 新建的一个类
@@ -31,8 +34,11 @@ public class SimpleArrowView extends BaseArrowView {
     public SimpleArrowView(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         mText = new TextView(getContext());
+        setBackgroundColor(Color.RED);
         mText.setText("下拉刷新");
+        mText.setTextColor(Color.WHITE);
         LayoutParams layoutParams = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        layoutParams.height = 200;
         layoutParams.setMargins(0, 0, 0, 0);
         mText.setGravity(Gravity.CENTER);
         mText.setLayoutParams(layoutParams);

@@ -5,6 +5,8 @@ import android.support.annotation.Nullable;
 import android.util.AttributeSet;
 import android.widget.LinearLayout;
 
+import com.cc.pullrecyclerview.pview.listener.ArrowViewListener;
+
 /**
  * description: 自定义下拉刷新头部需要继承
  * author: chencong

@@ -17,11 +17,14 @@
 * 添加头部,可以直接调用多次,添加多个
  ```java
  recyclerview.addHeader(header);
- 
  ```
-* 设置底部,只能调用一次,并且最好直接在LoadingMoreFooter内部进行修改
+* 设置footer
+ ```java
+ recyclerview.addFooter(footer);
+ ```
+* 设置LoadMore,剔除耦合代码,可自定义,继承ILoadMoreState
 ```java
-recyclerview.setFooterView(footview);
+recyclerview.setLoadMoreView(loadView);
 ```
 * 设置监听,直接包含的刷新和加载更多的方式
 ```java
@@ -44,14 +47,14 @@ recyclerview.setLoadingListener(new LoadingListener(){
 ```
 * 设置相应的模式,模式有4种
 ```java
-    //MODE_NONE   不需要下拉和加载
-    //MODE_REFRESH_BOTTOM 只进行加载更多的操作
+    // MODE_NONE   不需要下拉和加载
+    // MODE_REFRESH_BOTTOM 只进行加载更多的操作
     // MODE_REFRESH_TOP 只进行刷新的操作
     // MODE_REFRESH_ALL 全部都进行(默认选项)
     recyclerview.setMode(PullToRefreshView.FreshMode.MODE_REFRESH_ALL);
 ```
 ## 附言
-* 因为这个我没有做高度的封转,建议直接clone下来之后在源码上进行修改,主要是样式上的问题.
+* 因为没有自己做很好看的下拉刷新View,所以就随便简单写了一下,需要的可以进行自定义.我这边只封装的了状态.
 
 有问题欢迎提出或者直接邮件
 

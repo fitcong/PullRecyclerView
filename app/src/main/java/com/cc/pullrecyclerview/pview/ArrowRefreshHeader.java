@@ -9,6 +9,8 @@ import android.view.Gravity;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 
+import com.cc.pullrecyclerview.pview.listener.PullToRefreshHeaderHelper;
+
 import java.util.Date;
 
 public class ArrowRefreshHeader extends LinearLayout implements PullToRefreshHeaderHelper {
